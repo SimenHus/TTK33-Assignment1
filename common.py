@@ -3,10 +3,21 @@ import numpy as np
 from dataclasses import dataclass
 
 
-RNG = np.random.default_rng()
+RNG = np.random.default_rng() # RNG generator used in gaussian sampling
+dt = 0.01 # Time step [s]
+
+sigma_acc = 10 # Actual accelerometer std deviation
+sigma_gyro = 10 # Actual gyro std deviation
+sigma_gnss = 0.01 # Actual gnss std deviation
+EKF_Q = 2.5e-1 # EKF assumed process noise (Including IMU measurements)
+EKF_R = 5e-3 # EKF assumed measurement noise (GNSS)
+
 
 @dataclass
 class GNSSData:
+    """
+    Dataclass for GNSS measurements
+    """
     x: float
     y: float = None
 
@@ -18,23 +29,25 @@ class GNSSData:
     @property
     def array(self) -> 'np.ndarray[2]':
         return np.array([self.x, self.y])
-    
-    
-    
+     
 
 @dataclass
 class IMUData:
-    lin_acc: 'np.ndarray[2]'
+    """
+    Dataclass for IMU measurements
+    """
+    lin_acc: 'np.ndarray[1]'
     ang_vel: 'np.ndarray[1]' = None
 
     def __post_init__(self) -> None:
-        if self.lin_acc.shape[0] == 3 and self.ang_vel is None:
-            self.ang_vel = np.array([self.lin_acc[2]])
-            self.lin_acc = self.lin_acc[:2]
+        if self.lin_acc.shape[0] == 2 and self.ang_vel is None:
+            self.ang_vel = np.array([self.lin_acc[1]])
+            self.lin_acc = self.lin_acc[0:1]
 
     @property
-    def array(self) -> 'np.ndarray[3]':
+    def array(self) -> 'np.ndarray[2]':
         return np.concatenate([self.lin_acc, self.ang_vel])
+    
 
 @dataclass
 class PDF:
@@ -43,3 +56,4 @@ class PDF:
 
     def sample(self) -> 'np.ndarray[n]':
         return RNG.multivariate_normal(self.mean, self.sigma)
+    
