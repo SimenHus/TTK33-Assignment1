@@ -20,14 +20,14 @@ x0 = PDF(x_0, cov_0) # Initial PDF
 
 # List of EKFs to run in the simulation
 EKFS: list[EKF] = [
+    EKF(x0, 0.01, 0.01, 1),
     EKF(x0, 0.1, 0.1, 1),
     EKF(x0, 1, 1, 1),
     EKF(x0, 10, 10, 1),
-    EKF(x0, 10, 0.1, 1),
+    IEKF(x0, 0.01, 0.01, 1),
     IEKF(x0, 0.1, 0.1, 1),
     IEKF(x0, 1, 1, 1),
     IEKF(x0, 10, 10, 1),
-    IEKF(x0, 10, 0.1, 1),
 ]
 
 
@@ -73,7 +73,7 @@ for row in axs:
         column.set_ylim([-lim, lim])
         column.grid()
         column.legend()
-        column.set_title(EKFS[counter].label, rotation='horizontal', x=-0.1, y=0.5)
+        column.set_title(EKFS[counter].label)
         counter += 1
 
 def update(i):
