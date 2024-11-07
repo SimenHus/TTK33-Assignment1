@@ -6,12 +6,9 @@ from dataclasses import dataclass
 RNG = np.random.default_rng() # RNG generator used in gaussian sampling
 dt = 0.01 # Time step [s]
 
-sigma_acc = 10 # Actual accelerometer std deviation
-sigma_gyro = 10 # Actual gyro std deviation
-sigma_gnss = 0.01 # Actual gnss std deviation
-EKF_Q = 2.5e-1 # EKF assumed process noise (Including IMU measurements)
-EKF_R = 5e-3 # EKF assumed measurement noise (GNSS)
-
+sigma_acc_base = 5 # Accelerometer std deviation
+sigma_gyro_base = 2 # Gyro std deviation
+sigma_GNSS_base = 0.01 # GNSS std deviation
 
 @dataclass
 class GNSSData:

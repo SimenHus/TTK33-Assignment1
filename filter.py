@@ -1,33 +1,55 @@
 from common import *
 
 class EKF:
-    Q = EKF_Q*np.eye(4) # Assumed discrete process noise
-    R = EKF_R*np.eye(2) # Assumed discrete GNSS measurement noise
+    x: PDF
+    Q: 'np.ndarray[4, 4]'
+    R: 'np.ndarray[2, 2]'
+    sigma_acc: 'np.ndarray[1]'
+    sigma_gyro: 'np.ndarray[1]'
+    sigma_GNSS: 'np.ndarray[2, 2]'
+
+    def __init__(self, x0: PDF, sigma_acc: float, sigma_gyro: float, sigma_GNSS: float, label: str):
+        self.sigma_acc = np.diag([1])*sigma_acc
+        self.sigma_gyro = np.diag([1])*sigma_gyro
+        self.sigma_GNSS = np.diag([1, 1])*sigma_GNSS
+
+        self.Q = np.diag([1, 1, sigma_gyro**2, sigma_acc**2])*dt
+        self.R = np.diag([sigma_GNSS**2, sigma_GNSS**2])*1/dt
+        self.x = x0
+        self.label = label
 
 
-    @classmethod
-    def prediction(clc, x: PDF, u: 'np.ndarray[2]') -> PDF:
-        F = clc.F(x.mean, u)
+    def sample_IMU(self, true_acc: float, true_gyro: float) -> IMUData:
+        lin_acc = PDF(np.array([true_acc]), self.sigma_acc).sample()
+        ang_vel = PDF(np.array([true_gyro]), self.sigma_gyro).sample()
+        return IMUData(lin_acc, ang_vel)
 
-        P_priori = F@x.sigma@F.T + clc.Q
-        x_priori = clc.f(x.mean, u)
+    def sample_GNSS(self, true_pos: 'np.ndarray[2]') -> GNSSData:
+        pos = PDF(true_pos, self.sigma_GNSS).sample()
+        return GNSSData(pos)
 
-        return PDF(x_priori, P_priori)
+    def prediction(self, u: 'np.ndarray[2]') -> None:
+
+        F = self.F(self.x.mean, u)
+
+        P_prior = F@self.x.sigma@F.T + self.Q
+        x_prior = self.f(self.x.mean, u)
+
+        self.x = PDF(x_prior, P_prior)
     
 
-    @classmethod
-    def correction(clc, x: PDF, y: 'np.ndarray[2]') -> PDF:
-        P_priori = x.sigma
-        x_priori = x.mean
+    def correction(self, y: 'np.ndarray[2]') -> None:
+        P_prior = self.x.sigma
+        x_prior = self.x.mean
 
-        g = clc.g(x_priori)
-        G = clc.G(x_priori)
-        K = P_priori@G.T@np.linalg.inv(G@P_priori@G.T + clc.R)
+        g = self.g(x_prior)
+        G = self.G(x_prior)
+        K = P_prior@G.T@np.linalg.inv(G@P_prior@G.T + self.R)
 
-        P_posterior = (np.eye(4) - K@G)@P_priori
-        x_posterior = x_priori + K@(y - g)
+        P_posterior = (np.eye(4) - K@G)@P_prior
+        x_posterior = x_prior + K@(y - g)
 
-        return PDF(x_posterior, P_posterior)
+        self.x = PDF(x_posterior, P_posterior)
 
     @staticmethod
     def f(x: 'np.ndarray[4]', u: 'np.ndarray[2]') -> 'np.ndarray[4]':
@@ -73,3 +95,32 @@ class EKF:
             [0, 1, 0, 0]
         ])
         return G
+    
+    
+
+
+class IEKF(EKF):
+
+    def correction(self, y: 'np.ndarray[2]') -> None:
+        P_prior = self.x.sigma
+        x_prior = self.x.mean
+
+        x_iter = x_prior
+        threshold = 1e-2
+        max_iteratons = 100
+
+        for _ in range(max_iteratons):
+            g = self.g(x_iter)
+            G = self.G(x_iter)
+            K = P_prior@G.T@np.linalg.inv(G@P_prior@G.T + self.R)
+
+            x_new = x_iter + K@(y - g)
+
+            if np.linalg.norm(x_new - x_iter) < threshold: break
+
+            x_iter = x_new
+
+        P_posterior = (np.eye(4) - K@G)@P_prior
+        x_posterior = x_iter
+
+        self.x = PDF(x_posterior, P_posterior)
