@@ -7,8 +7,13 @@ class EKF:
     sigma_acc: 'np.ndarray[1]'
     sigma_gyro: 'np.ndarray[1]'
     sigma_GNSS: 'np.ndarray[2, 2]'
+    label: str
 
-    def __init__(self, x0: PDF, sigma_acc: float, sigma_gyro: float, sigma_GNSS: float, label: str):
+    def __init__(self, x0: PDF, acc_factor: float, gyro_factor: float, GNSS_factor: float):
+        sigma_acc = sigma_acc_base*acc_factor
+        sigma_gyro = sigma_gyro_base*gyro_factor
+        sigma_GNSS = sigma_GNSS_base*GNSS_factor
+
         self.sigma_acc = np.diag([1])*sigma_acc
         self.sigma_gyro = np.diag([1])*sigma_gyro
         self.sigma_GNSS = np.diag([1, 1])*sigma_GNSS
@@ -16,7 +21,10 @@ class EKF:
         self.Q = np.diag([1, 1, sigma_gyro**2, sigma_acc**2])*dt
         self.R = np.diag([sigma_GNSS**2, sigma_GNSS**2])*1/dt
         self.x = x0
-        self.label = label
+        self.label = ('EKF:'
+                    f'$\\sigma_{'{acc}'}$ = {acc_factor}$\\sigma_{"{acc\\_base}"}$'
+                    f' $\\sigma_{'{gyro}'}$ = {gyro_factor}$\\sigma_{"{gyro\\_base}"}$'
+                    f' $\\sigma_{'{GNSS}'}$ = {GNSS_factor}$\\sigma_{"{GNSS\\_base}"}$')
 
 
     def sample_IMU(self, true_acc: float, true_gyro: float) -> IMUData:
@@ -100,6 +108,10 @@ class EKF:
 
 
 class IEKF(EKF):
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.label = 'I' + self.label
 
     def correction(self, y: 'np.ndarray[2]') -> None:
         P_prior = self.x.sigma

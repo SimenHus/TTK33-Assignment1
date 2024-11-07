@@ -20,14 +20,14 @@ x0 = PDF(x_0, cov_0) # Initial PDF
 
 # List of EKFs to run in the simulation
 EKFS: list[EKF] = [
-    EKF(x0, sigma_acc_base*0.01, sigma_gyro_base*0.1, sigma_GNSS_base, 'EKF: $\\sigma_{acc} = 1$'),
-    EKF(x0, sigma_acc_base, sigma_gyro_base, sigma_GNSS_base, 'EKF: $\\sigma_{acc} = 2$'),
-    EKF(x0, sigma_acc_base*100, sigma_gyro_base*10, sigma_GNSS_base, 'EKF: $\\sigma_{acc} = 3$'),
-    EKF(x0, sigma_acc_base, sigma_gyro_base, sigma_GNSS_base*100, 'EKF: $\\sigma_{acc} = 4$'),
-    IEKF(x0, sigma_acc_base*0.01, sigma_gyro_base*0.1, sigma_GNSS_base, 'IEKF: $\\sigma_{acc} = 1$'),
-    IEKF(x0, sigma_acc_base, sigma_gyro_base, sigma_GNSS_base, 'IEKF: $\\sigma_{acc} = 2$'),
-    IEKF(x0, sigma_acc_base*100, sigma_gyro_base*10, sigma_GNSS_base, 'IEKF: $\\sigma_{acc} = 3$'),
-    IEKF(x0, sigma_acc_base, sigma_gyro_base, sigma_GNSS_base*100, 'IEKF: $\\sigma_{acc} = 4$'),
+    EKF(x0, 0.1, 0.1, 1),
+    EKF(x0, 1, 1, 1),
+    EKF(x0, 10, 10, 1),
+    EKF(x0, 10, 0.1, 1),
+    IEKF(x0, 0.1, 0.1, 1),
+    IEKF(x0, 1, 1, 1),
+    IEKF(x0, 10, 10, 1),
+    IEKF(x0, 10, 0.1, 1),
 ]
 
 
@@ -73,7 +73,7 @@ for row in axs:
         column.set_ylim([-lim, lim])
         column.grid()
         column.legend()
-        column.set_title(EKFS[counter].label)
+        column.set_title(EKFS[counter].label, rotation='horizontal', x=-0.1, y=0.5)
         counter += 1
 
 def update(i):
